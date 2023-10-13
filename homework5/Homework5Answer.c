@@ -450,19 +450,26 @@ void createHero(char* heroNameInput, unsigned int heroHpInput, unsigned int hero
 // There is no need to check if the map name exists in the list. That is done in executeAction().
 void moveHero(char* mapNameInput) {
 	struct mapList* tempList = list;		//create tempList to iterate
-	// Write your code below.
+	// Write your code below
+	//make a current map node to keep track of the current node
 	struct map* currentMap = NULL;
+	//while the list is not empty
 	while (tempList != NULL) {
+		//if the hero of the head of the list is equal to theHero then move the current node to the next node's map
 		if (tempList->map->hero == theHero) {
 			currentMap = tempList->map;
 			break;
 		}
+		//otherwise move to the next node
 		tempList = tempList->next;
 	}
+	//if the current node isnt empty, then the hero is empty
 	if (currentMap != NULL) {
 		currentMap->hero = NULL;
 	}
+	
 	tempList = list;
+	//while the list is not empty, then add theHero to the location
 	while (tempList != NULL) {
 		if (strcmp(tempList->map->name, mapNameInput) == 0) {
 			// Set the destination map's hero to theHero and update the hero's location
@@ -485,32 +492,30 @@ void addEnemy(char* mapNameInput, char* enemyNameInput, unsigned int enemyHpInpu
 	struct mapList* tempList = list;				// work on a copy of 'list'
 	// write the code below.
 	//search for the map name to put the enemy inside 
-	  struct map* mapSearch = searchMap(mapNameInput);
-	if (mapSearch != NULL){
-		// create new 'enemy' node
-		//allocate the memory to enemy
-		struct enemy* theEnemy = (struct enemy*)malloc(sizeof(struct enemy));
-		if (theEnemy == NULL) {
-			return;
-		}
-		//put content in the node
-		theEnemy->attack = enemyAttackInput;
-		theEnemy->hp = enemyHpInput;
-		strncpy(theEnemy->name, enemyNameInput, sizeof(theEnemy->name));
-		theEnemy->next = NULL;
-		if (mapSearch->enemyList == NULL) {
-			mapSearch->enemyList = theEnemy;
-		}
-		else {
-			//if there is an existing node then add an emeny to the tail of the list
-			while (mapSearch->enemyList->next != NULL) {
-				mapSearch->enemyList = mapSearch->enemyList->next;
+	while (tempList != NULL) {
+		if (strcmp(tempList->map->name, mapNameInput) == 0) {
+			struct enemy* newEnemy = (struct enemy*)malloc(sizeof(struct enemy));
+			if (newEnemy != NULL) {
+				strncpy(newEnemy->name, enemyNameInput, sizeof(newEnemy->name));
+				newEnemy->hp = enemyHpInput;
+				newEnemy->attack = enemyAttackInput;
+				newEnemy->next = NULL;
 			}
-			mapSearch->enemyList->next = theEnemy;
+			if (tempList->map->enemyList == NULL) {
+				tempList->map->enemyList = newEnemy;
+			}
+			else {
+				struct enemy* currentEnemy = tempList->map->enemyList;
+				while (currentEnemy->next != NULL) {
+					currentEnemy = currentEnemy->next;
+				}
+				currentEnemy->next = newEnemy;
+			}
+			tempList->map->enemyCount++;
 		}
-		mapSearch->enemyCount++;
-	}	
-	
+		return;
+	}
+	tempList = tempList->next;
 }
 
 // Q6: removeMap (5 points)
@@ -523,10 +528,49 @@ void addEnemy(char* mapNameInput, char* enemyNameInput, unsigned int enemyHpInpu
 // hint: deleting after deleting the hero on local, reset the global to base condition. 
 void removeMap(char* mapNameInput)
 {
-	struct mapList* tempList = list;				// work on a copy of 'list'
-	struct enemy* tempEnemy;
-	// write the code below.
+	struct mapList* tempList = list;
+	struct mapList* prevMap = NULL;
+
+	while (tempList != NULL) {
+		if (strcmp(tempList->map->name, mapNameInput) == 0) {
+			// Remove hero
+			if (tempList->map->hero != NULL) {
+				free(tempList->map->hero);
+				theHero = NULL;
+			}
+
+			// Remove enemies
+			struct enemy* currentEnemy = tempList->map->enemyList;
+			while (currentEnemy != NULL) {
+				struct enemy* nextEnemy = currentEnemy->next;
+				free(currentEnemy);
+				currentEnemy = nextEnemy;
+			}
+			tempList->map->enemyList = NULL;
+			tempList->map->enemyCount = 0;
+
+			// Remove the map node from the list
+			if (prevMap == NULL) {
+				list = tempList->next;
+				free(tempList->map);
+				free(tempList);
+				tempList = list;
+			}
+			else {
+				prevMap->next = tempList->next;
+				free(tempList->map);
+				free(tempList);
+				tempList = prevMap->next;
+			}
+			break;
+		}
+		else {
+			prevMap = tempList;
+			tempList = tempList->next;
+		}
+	}
 }
+
 
 // Q7 and Q8: mapCombat() and combatRecurse()  (10 points)
 // These functions operate as a recursive pair. 
